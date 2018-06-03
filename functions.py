@@ -16,14 +16,14 @@ def getCP(ali, w = 6):
     l = len(ali)
     if l == 0:
         l = 1
-    
+
     result = 0.0
-    
+
     for ali_i in ali:
         s = sum(ali_i)
-        
+
         pen = 1/ (1 + (abs(1 - s))**w)
-        
+
         result += math.log(pen)
     return result / l
 
@@ -31,9 +31,9 @@ def getEnt(ali):
     l = len(ali)
     if l == 0:
         l = 1
-    
+
     res = 0.0
-    
+
     for pd in ali:
         norm = sum(pd)
         if norm > 0:
@@ -42,7 +42,7 @@ def getEnt(ali):
             res -= entr
         else:
             res = 0
-    
+
     return res / l
 
 def getRevEnt(ali, w = 0.1):
@@ -93,13 +93,13 @@ def printBlock2(value):
     num = int(math.floor((value-0.01)*8))
     if num<0: num = 0
     sys.stdout.write(blocks2[num])
-        
+
 def printBlock(value):
     blocks = ['██', '▓▓', '▒▒', '░░', '  ',]
     num = int(math.floor((value-0.01)*4))
     if num<0: num = 0
     sys.stdout.write(blocks[num])
-        
+
 def readSnts(filename):
     with open(filename, 'r', encoding='utf-8') as fh:
         return [escape(line).strip().split() for line in fh]
@@ -115,7 +115,7 @@ def readNematus(filename, openNMT = 0):
             if wasNew:
                 if len(aliTXT) > 0:
                     c = StringIO(aliTXT)
-                    ali = np.loadtxt(c)
+                    ali = np.loadtxt(c)[:,1:]
                     ali = ali.transpose()
                     alis.append(ali)
                     aliTXT = ''
@@ -133,16 +133,16 @@ def readNematus(filename, openNMT = 0):
                 wasNew = True
         if len(aliTXT) > 0:
             c = StringIO(aliTXT)
-            ali = np.loadtxt(c)
+            ali = np.loadtxt(c)[:,1:]
             if openNMT == 0:
                 ali = ali.transpose()
             alis.append(ali)
             aliTXT = ''
     return srcs, tgts, alis
-    
+
 def escape(string):
     return string.replace('"','&quot;').replace("'","&apos;")
-    
+
 def readAmu(in_file, src_file):
     with open(src_file, 'r', encoding='utf-8') as fi:
         with open(in_file, 'r', encoding='utf-8') as fh:
@@ -166,7 +166,7 @@ def readAmu(in_file, src_file):
                     alis.append(ali)
                     aliTXT = ''
     return srcs, tgts, alis
-    
+
 def compare(srcs1, srcs2):
     for i in range(0, len(srcs1)):
         if srcs1[i][len(srcs1[i])-1] != '<EOS>':
@@ -174,14 +174,14 @@ def compare(srcs1, srcs2):
         if srcs2[i][len(srcs2[i])-1] != '<EOS>':
             srcs2[i].append('<EOS>')
     return srcs1==srcs2
-    
+
 def synchData(data1,data2):
     addEOS1 = False
     addEOS2 = False
     for i in range(0, len(data1)):
         diff1 = len(data1[i][1]) - len(data2[i][1])
         diff2 = len(data2[i][1]) - len(data1[i][1])
-        
+
         if(diff1 > 0):
             for j in range(0, diff1):
                 data2[i][1].append(u'')
@@ -189,7 +189,7 @@ def synchData(data1,data2):
             for j in range(0, diff2):
                 data1[i][1].append(u'')
     return data1, data2
-    
+
 def longestCommonSubstring(s1, s2):
     m = [[0] * (1 + len(s2)) for i in range(1 + len(s1))]
     longest, x_longest = 0, 0
@@ -203,7 +203,7 @@ def longestCommonSubstring(s1, s2):
             else:
                 m[x][y] = 0
     return s1[x_longest - longest: x_longest]
-    
+
 def processAlignments(data, folder, inputfile, outputType, num, refs=False):
     with open(folder + "/" + ntpath.basename(inputfile) + '.ali.js', 'w', encoding='utf-8') as out_a_js:
         with open(folder + "/" + ntpath.basename(inputfile) + '.src.js', 'w', encoding='utf-8') as out_s_js:
@@ -228,7 +228,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                             if rawAli.ndim == 1:
                                 rawAli = np.array([rawAli])
                             ali = [l[:len(list(filter(None, tgt)))] for l in rawAli[:len(src)]]
-                            
+
                             srcTotal = []
                             trgTotal = []
                             tali = np.array(ali).transpose()
@@ -236,18 +236,18 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                 srcTotal.append(str(math.pow(math.e, -0.05 * math.pow((getCP([ali[a]]) + getEnt([ali[a]]) + getRevEnt([ali[a]])), 2))))
                             for a in range(0, len(tali)):
                                 trgTotal.append(str(math.pow(math.e, -0.05 * math.pow((getCP([tali[a]]) + getEnt([tali[a]]) + getRevEnt([tali[a]])), 2))))
-                            
+
                             JoinedSource = " ".join(src)
                             JoinedTarget = " ".join(tgt)
                             StrippedSource = ''.join(c for c in JoinedSource if unicodedata.category(c).startswith('L')).replace('EOS','').replace('quot','').replace('apos','')
                             StrippedTarget = ''.join(c for c in JoinedTarget if unicodedata.category(c).startswith('L')).replace('EOS','').replace('quot','').replace('apos','')
-                            
+
                             #Get the confidence metrics
                             CDP = round(getCP(ali), 10)
                             APout = round(getEnt(ali), 10)
                             APin = round(getRevEnt(ali), 10)
                             Total = round(CDP + APout + APin, 10)
-                            
+
                             #Can we calculate BLEU?
                             bleuNumber = -1
                             if(refs):
@@ -266,12 +266,12 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                     bleuScore = u''
                             else:
                                 bleuScore = u''
-                            
+
                             jls = JoinedSource.replace('@@ ','').replace('<EOS>','').replace('&quot;','"').replace("&apos;","'").replace("&amp;","&").replace("@-@","-").strip()
                             jlt = JoinedTarget.replace('@@ ','').replace('<EOS>','').replace('&quot;','"').replace("&apos;","'").replace("&amp;","&").replace("@-@","-").strip()
                             longest = longestCommonSubstring(jls, jlt).strip()
                             similarity = len(longest)/len(jlt)
-                            
+
                             #Penalize sentences with more than 4 tokens
                             if (len(tgt) > 4) and (similarity > 0.3):
                                 #The more similar, the higher penalty
@@ -281,7 +281,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                 multiplier = (0.8+(len(tgt)*0.01)) * multiplier
                                 multiplier = multiplier*(0.7 + similarity)
                                 Total = round(CDP + APout + APin - (multiplier * math.tan(similarity)), 10)
-                            
+
                             # e^(-1(x^2))
                             CDP_pr = round(math.pow(math.e, -1 * math.pow(CDP, 2)) * 100, 2)
                             # e^(-0.05(x^2))
@@ -290,17 +290,17 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                             Total_pr = round(math.pow(math.e, -0.05 * math.pow(Total, 2)) * 100, 2)
                             # 1-e^(-0.0001(x^2))
                             Len = round((1-math.pow(math.e, -0.0001 * math.pow(len(JoinedSource), 2))) * 100, 2)
-                            
-                            
+
+
                             out_s_js.write('["'+ JoinedSource.replace(' ','", "') +'"], \n')
                             out_t_js.write('["'+ JoinedTarget.replace(' ','", "') +'"], \n')
-                            out_c_js.write(u'['+ repr(CDP_pr) + u', '+ repr(APout_pr) + u', '+ repr(APin_pr) + u', '+ repr(Total_pr) 
+                            out_c_js.write(u'['+ repr(CDP_pr) + u', '+ repr(APout_pr) + u', '+ repr(APin_pr) + u', '+ repr(Total_pr)
                                 + u', '+ repr(Len) + u', '+ repr(len(JoinedSource)) + u', '
-                                + repr(round(similarity*100, 2)) 
-                                + bleuScore 
+                                + repr(round(similarity*100, 2))
+                                + bleuScore
                                 + u'], \n')
                             out_sc_js.write(u'[[' + ", ".join(srcTotal) + u'], ' + u'[' + ", ".join(trgTotal) + u'], ' + u'], \n')
-                            
+
                             word = 0
                             out_a_js.write(u'[')
                             for ali_i in ali:
@@ -319,7 +319,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                 word+=1
                                 if outputType != 'web' and outputType != 'compare':
                                     sys.stdout.write('\n')
-                            
+
                             # write target sentences
                             #build 2d array
                             occupied_to = []
@@ -333,7 +333,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                 twlen = len(twchars)
                                 xpos = tw * 2
                                 emptyline = 0
-                                
+
                                 for el in range(0, len(occupied_to)):
                                     # if occupied, move to a new line!
                                     if occupied_to[el] < xpos:
@@ -346,7 +346,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                         emptyline=el+1
                                         if len(outchars) < emptyline+1:
                                             outchars.append([])
-                                         
+
                                 for column in range(0, xpos):
                                     if len(outchars[emptyline]) <= column:
                                         outchars[emptyline].append(' ')
@@ -356,7 +356,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                         outchars[emptyline].append(twchars[charindex])
                                     else:
                                         outchars[emptyline][charindex] = twchars[charindex]
-                                
+
                                 if len(occupied_to) <= emptyline:
                                     occupied_to.append(xpos+twlen+1)
                                 else:
@@ -375,7 +375,7 @@ def processAlignments(data, folder, inputfile, outputType, num, refs=False):
                                 sys.stdout.write('Similarity: \t\t\t\t' + repr(round(similarity*100, 2)) + '%' + '\n')
                                 if bleuNumber > -1:
                                     sys.stdout.write('BLEU: \t\t\t\t\t' + repr(bleuNumber) + '\n')
-                           
+
                             # write target sentences
                             word = 0
                             out_a_js.write(u'], \n')
